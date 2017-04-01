@@ -2,8 +2,6 @@ package koktai
 
 import java.io.FileWriter
 
-import koktai.KokTaiParser.Sinogram
-
 import scala.io.Source
 
 /**
