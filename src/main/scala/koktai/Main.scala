@@ -62,18 +62,32 @@ object Main extends App {
   // todo: gérer les <rt> (tout m3 et quelques fk)
   def astralMapping(font: FontFamily, codepoint : Int): String = codepoint match {
     case c if mappings(font).contains(c) => {
+      println(f"$c%x")
       val out = mappings(font)(c)
       if(font == FM3 || (font == FK && (
         c <= 0xf8df0 ||
           (0xf93a8 <= c && c <= 0xf93c3 ) ||
           (0xf93c7 <= c && c <= 0xf93cf) ||
           (0xf856c <= c && c <= 0xf856f)
-      )))
-        s"<rt>$out</rt>"
-      else
-        out
+      ))) {
+        val x = s"<rt>$out</rt>"
+        println(x)
+        x
+      }
+      else {
+        val x = s"<mark>$out</mark>"
+        println(x)
+        x
+      }
     }
-    case x => Character.toChars(x) mkString ""
+    case x =>
+      val str = Character.toChars(x) mkString ""
+      val out =
+        if(font == FK && 0xf8cc4  <= x && x <= 0xffefe )
+          s"<mark>$str</mark>"
+        else str
+      println(out)
+      out
   }
 
   def convertAstralChars(input:String): String = {

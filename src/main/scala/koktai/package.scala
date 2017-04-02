@@ -71,19 +71,33 @@ package object koktai {
       case c: CJKRuby => c.toHTML //<ruby>{c.cjk}<rt>{c.ruby}</rt></ruby>
       case Text(t) => <span>{t map {_.toHtml}}</span>
       case SomeChar(c) => scala.xml.Text(c)
+      case c: KokTaiCJK => c.toHtml
+      case s: StringResult => scala.xml.Text(s.asInstanceOf[String])
+      case CJK(c) => scala.xml.Text(c)
+    }
+
+    override def toString = this match {
+      case s: StringResult => s.asInstanceOf[String]
+      case CJK(c) => c
+      case x => super.toString
     }
   }
-  type StringResult = String with Result
-  type Zhuyin = StringResult
-  type CJK = StringResult
-  type Ruby = StringResult
-  type Raw = StringResult
+
+  abstract class StringResult extends TextResult
+  type Zhuyin = String with StringResult
+  case class CJK(c: String) extends TextResult
+  type Ruby = String with StringResult
+  type Raw = String with StringResult
 
   case class Text(content: List[TextResult]) extends TextResult
   case class SomeChar(c:String) extends TextResult
 
-  case class CJKRuby(cjk: String, ruby: String) extends TextResult {
-    def toWiki: String = s"{{Ruby|$cjk|${ruby.replace("/","<br/>")}}}"
+  case class KokTaiCJK(cjk:String) extends TextResult {
+    override def toHtml = <mark>{cjk}</mark>
+  }
+
+  case class CJKRuby(cjk: TextResult, ruby: String) extends TextResult {
+    def toWiki: String = s"{{Ruby|${cjk.toString}|${ruby.replace("/","<br/>")}}}"
 
     def multiRT(ruby: String): scala.xml.Node = {
       def aux(l: List[String], acc:List[scala.xml.Node]): scala.xml.Node = {
@@ -96,7 +110,7 @@ package object koktai {
       aux(ruby.split("/").toList, Nil)
     }
 
-    def toHTML = <ruby>{cjk}{multiRT(ruby)}</ruby>
+    def toHTML = <ruby>{cjk.toHtml}{multiRT(ruby)}</ruby>
   }
 
   case class ReadingStart(src: String) extends Result

@@ -52,11 +52,13 @@ object KokTaiParser extends RegexParsers {
     case (title ~ _ ~ num ~ content) => Word(Text(title), num.map(_.toInt), content)}
 
   def wordTitleAnyChar: Parser[TextResult] =
+  koktaiCjk |
   annotedCJK |
     simpleAnnotReading ^^ SomeChar |
     "[^】]".r ^^ SomeChar
 
   def wordContentAnyChar: Parser[TextResult] =
+    koktaiCjk |
     annotedCJK   |
   simpleAnnotReading ^^ SomeChar |
       "~(?!t96)".r ^^^ SomeChar("~") |
@@ -81,11 +83,14 @@ object KokTaiParser extends RegexParsers {
       |\x{2A700}-\x{2B73F}
       |\x{2B740}-\x{2B81F}
       |\x{2B820}-\x{2CEAF}
-      |\x{2F800}-\x{2FA1F}]|<mark>&#......;</mark>)""".stripMargin.replace("\n","").r ^^ { _.asInstanceOf[CJK] }
+      |\x{2F800}-\x{2FA1F}])""".stripMargin.replace("\n","").r ^^ CJK
+
+  def koktaiCjk: Parser[KokTaiCJK] =
+      "<mark>" ~> ".".r <~ "</mark>" ^^ {case cjk => KokTaiCJK(cjk)}
 
 
   def sinogramTitle: Parser[Raw] =
-    rep(cjk |"""~fk;|·|~fm7;|[…\( \)∟←→／/]""".r | zhuyin ) ^^ {_.mkString("").asInstanceOf[Raw]}
+    rep(koktaiCjk | cjk | """~fk;|·|~fm7;|[…\( \)∟←→／/]""".r | zhuyin ) ^^ {_.mkString("").asInstanceOf[Raw]}
 
   def simpleAnnotReading: Parser[Ruby] =
     "<mark>&#xf856f;</mark>" ^^^ "│ㄋ".asInstanceOf[Ruby] |
@@ -94,7 +99,9 @@ object KokTaiParser extends RegexParsers {
         case ( point ~ _ ~  syllable) => s"${point.getOrElse("")} ${syllable.mkString("/")}".asInstanceOf[Ruby]
       }
 
-  def annotedCJK: Parser[CJKRuby] = cjk ~ simpleAnnotReading ^^ {case (cjk ~ ruby ) => CJKRuby(cjk, ruby)}
+  def annotedCJK: Parser[CJKRuby] =
+    koktaiCjk  ~ simpleAnnotReading ^^ {case (cjk ~ ruby ) => CJKRuby(cjk, ruby)} |
+      cjk ~ simpleAnnotReading ^^ {case (cjk ~ ruby ) => CJKRuby(cjk, ruby)}
 
 
 
