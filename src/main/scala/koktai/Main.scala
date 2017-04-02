@@ -119,10 +119,10 @@ object Main extends App {
         if(chpt.zhuyin.trim.isEmpty){
            println("empty filename")
            println(chpt.pinyin)
-            "lastEmpty"
+            "lastEmpty.html"
         }
         else chpt.zhuyin.trim.replace("/", "|")
-       val file = new File(basePath, filename )
+       val file = new File(basePath, filename + ".html" )
        val fw = new FileWriter(file)
        fw.write(chpt.toHTML.buildString(true))
        fw.close()

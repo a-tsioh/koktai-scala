@@ -11,7 +11,7 @@ object KokTaiParser extends RegexParsers {
 
 
   override def skipWhitespace = true
-  override val whiteSpace = """([\s　 \n]|\.本文|~fm7t168(bb1)?;|~fm3t168(bb1)?;|~fm3bt180;|~bt0;|~fkt168bb1;|~fm3t84bb1;|~fm3;|~t84;|~fd6;|~fd0;|~bt180;|~t112fd0;|~t112;)+""".r
+  override val whiteSpace = """([\s　 \n]|\.本文|~fm7t168(bb1)?;|~fm3t168(bb1)?;|~fm3bt180;|~bt0;|~fkt168bb1;|~fm3t84bb1;|~fk;|~fm3;|~t84;|~fd6;|~fd0;|~bt180;|~t112fd0;|~t112;)+""".r
 
 
 

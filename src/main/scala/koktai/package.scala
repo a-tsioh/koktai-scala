@@ -142,14 +142,6 @@ package object koktai {
     }
 
     def textToHtml = {
-
-//      def mergePCData(seq: Seq[scala.xml.Node], acc:List[String]=Nil): List[scala.xml.Node] = seq match {
-//        case Nil => List(scala.xml.PCData(acc.reverse mkString ""))
-//        case scala.xml.PCData(txt) :: tl => mergePCData(tl, txt::acc)
-//        case other :: tl =>
-//          if(acc.isEmpty) other :: mergePCData(tl)
-//          else other :: scala.xml.PCData(acc.reverse mkString "") :: mergePCData(tl)
-//      }
       <span>
         {text.content map {_.toHtml}}
       </span>
