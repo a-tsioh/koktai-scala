@@ -62,31 +62,26 @@ object Main extends App {
   // todo: gérer les <rt> (tout m3 et quelques fk)
   def astralMapping(font: FontFamily, codepoint : Int): String = codepoint match {
     case c if mappings(font).contains(c) => {
-      println(f"$c%x")
       val out = mappings(font)(c)
       if(font == FM3 || (font == FK && (
         c <= 0xf8df0 ||
           (0xf93a8 <= c && c <= 0xf93c3 ) ||
           (0xf93c7 <= c && c <= 0xf93cf) ||
           (0xf856c <= c && c <= 0xf856f)
-      ))) {
-        val x = s"<rt>$out</rt>"
-        println(x)
-        x
-      }
-      else {
-        val x = s"<mark>$out</mark>"
-        println(x)
-        x
-      }
+      )))
+        s"<rt>$out</rt>"
+      else s"<mark>$out</mark>"
     }
     case x =>
       val str = Character.toChars(x) mkString ""
       val out =
         if(font == FK && 0xf8cc4  <= x && x <= 0xffefe )
           s"<mark>$str</mark>"
-        else str
-      println(out)
+        else mappings(Unknown)
+          .getOrElse(x,
+            mappings(NonAstral)
+              .getOrElse(x, str)
+          )
       out
   }
 
@@ -105,13 +100,16 @@ object Main extends App {
   }
 
   def readByChapters(file: String): Seq[String] = {
+    val reChar = "^~(fm7|fk|fm3)t168".r
     val src = Source.fromFile(file)
     src.getLines().foldLeft(List(Nil):List[List[String]])(
       (acc, line) => line match {
         case "" => acc //ignore blank lines
         case ".本文" => acc //ignore
         case ".章首" => List(line.trim)::acc // new chapter
-        case _ => (line.trim::acc.head)::acc.tail
+        case _ =>
+          val l = reChar.findFirstIn(line).map(_ => "<CHAR/>" + line).getOrElse(line)
+          (l.trim::acc.head)::acc.tail
       }
     ).reverseMap(_.reverse.mkString("")) // rebuild one string per chapter
   }

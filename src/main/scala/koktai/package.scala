@@ -14,32 +14,59 @@ package object koktai {
       .apply(s)
   }
 
+  def removeMarkup(s: String): String = {
+    //re_markup.replaceAllIn(s,"")
+    s
+  }
 
 
 
-  case class Sinogram(cjk: String, annot:Ruby, comment: String, readings: List[Reading],  words: List[Word]) extends Result {
+  case class Sinogram(cjk: TextResult, annot:Ruby, comment: Option[TextResult], readings: List[Reading],  words: List[Word]) extends Result {
     def toWiki: String = {
       s"""
          |=={{ruby|$cjk|${annot}}}==
-         |$comment
+         |${comment.map(_.toHtml).getOrElse("")}
          |${readings.map(_.toWiki) mkString ""}
          |
          |${words.map(_.toWiki) mkString ""}
        """.stripMargin
     }
 
+    def titleHasPoint(c: TextResult = cjk): Boolean = c match {
+      case SomeChar(c) => c.endsWith("·")
+      case Text(l) => !l.isEmpty && titleHasPoint(l.last)
+      case _ => false
+    }
+
+    def debugCJK = {
+      if(titleHasPoint()) {
+        cjk match {
+          case SomeChar(c) => SomeChar(c.substring(0,c.size - 1))
+          case Text(l) => Text(l.take(l.length-1))
+          case x => x
+        }
+      }
+      else cjk
+    }
+
+    def debugAnnot = {
+      if(titleHasPoint()) "·" + annot
+      else annot
+    }
+
+
     def toHTML =
-      <div>
-        <h2><ruby>{cjk}<rt>{annot}</rt></ruby></h2>
-        <div>{comment}</div>
-        <div>{readings.map(_.toHTML)}</div>
-        <div>{words.map(_.toHTML)}</div>
+      <div class="sinogram">
+        <h2><ruby>{debugCJK.toHtml}<rt>{debugAnnot}</rt></ruby></h2>
+        <div class="comment">{comment.map{_.toHtml}.getOrElse("")}</div>
+        <div class="readings">{readings.map(_.toHTML)}</div>
+        <div class="words">{words.map(_.toHTML)}</div>
       </div>
 
 
   }
 
-  case class Chapter(zhuyin: String, pinyin: String, comment: String, sinograms: List[Sinogram], words: List[Word]) extends Result {
+  case class Chapter(zhuyin: String, pinyin: String, comment: Option[TextResult], sinograms: List[Sinogram], words: List[Word]) extends Result {
     def toWiki: String = {
       s"""
          |= $zhuyin [$pinyin] =
@@ -57,8 +84,8 @@ package object koktai {
           <link rel="stylesheet" media="all" href="style.css" />
         </head>
         <body>
-          <h1>{s"$zhuyin [$pinyin]"}</h1>
-          <div>{comment}</div>
+          <h1>{s"$zhuyin ${removeMarkup(pinyin)}"}</h1>
+          <div class="chpt-comment">{comment.map {_.toHtml}.getOrElse("")}</div>
           {words map {_.toHTML}}
           {sinograms map {_.toHTML}}
         </body>
@@ -70,9 +97,9 @@ package object koktai {
     def toHtml: scala.xml.Node = this match  {
       case c: CJKRuby => c.toHTML //<ruby>{c.cjk}<rt>{c.ruby}</rt></ruby>
       case Text(t) => <span>{t map {_.toHtml}}</span>
-      case SomeChar(c) => scala.xml.Text(c)
+      case SomeChar(c) => scala.xml.Text(removeMarkup(c))
       case c: KokTaiCJK => c.toHtml
-      case s: StringResult => scala.xml.Text(s.asInstanceOf[String])
+      case s: StringResult => scala.xml.Text(removeMarkup(s.asInstanceOf[String]))
       case CJK(c) => scala.xml.Text(c)
     }
 
@@ -103,26 +130,26 @@ package object koktai {
       def aux(l: List[String], acc:List[scala.xml.Node]): scala.xml.Node = {
         l match {
           case Nil => <rt>{acc.reverse}</rt>
-          case List(single) => aux(Nil, scala.xml.Text(single):: acc)
-          case hd::tl => aux(tl, <br/> :: scala.xml.Text(hd) :: acc)
+          case List(single) => aux(Nil, scala.xml.Text(removeMarkup(single)):: acc)
+          case hd::tl => aux(tl, <br/> :: scala.xml.Text(removeMarkup(hd)) :: acc)
         }
       }
       aux(ruby.split("/").toList, Nil)
     }
 
-    def toHTML = <ruby>{cjk.toHtml}{multiRT(ruby)}</ruby>
+    def toHTML = <ruby>{cjk.toHtml}{multiRT(removeMarkup(ruby))}</ruby>
   }
 
   case class ReadingStart(src: String) extends Result
-  case class Reading(src: String, content: String) extends Result {
+  case class Reading(src: String, content: TextResult) extends Result {
     def toWiki: String =
       s"""
-         |'''$src''' ${cleanForWiki(content) }
+         |'''$src''' ${content.toString }
        """.stripMargin
 
     def toHTML =
       <div>
-        <b>{src}</b> {cleanForWiki(content)}
+        <b>{src}</b> {content.toHtml}
       </div>
   }
 
