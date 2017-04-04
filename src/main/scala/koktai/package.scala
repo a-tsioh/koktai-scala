@@ -15,11 +15,16 @@ package object koktai {
   }
 
   def removeMarkup(s: String): String = {
-    //re_markup.replaceAllIn(s,"")
-    s
+    re_markup.replaceAllIn(s,"")
   }
 
 
+  val HtmlHeaders =
+    <head>
+      <meta charset="utf8" />
+      <script src="han.min.js"></script>
+      <link rel="stylesheet" media="all" href="style.css" />
+    </head>
 
   case class Sinogram(cjk: TextResult, annot:Ruby, comment: Option[TextResult], readings: List[Reading],  words: List[Word]) extends Result {
     def toWiki: String = {
@@ -55,6 +60,19 @@ package object koktai {
     }
 
 
+    def toHTMLShortPage =
+      <html>
+        {HtmlHeaders}
+        <body>
+          <div class="sinogram">
+            <h2><ruby>{debugCJK.toHtml}<rt>{debugAnnot}</rt></ruby></h2>
+            <div class="comment">{comment.map{_.toHtml}.getOrElse("")}</div>
+            <div class="readings">{readings.map(_.toHTML)}</div>
+            <div class="words">{words.map(_.toHTML)}</div>
+          </div>
+        </body>
+      </html>
+
     def toHTML =
       <div class="sinogram">
         <h2><ruby>{debugCJK.toHtml}<rt>{debugAnnot}</rt></ruby></h2>
@@ -76,13 +94,21 @@ package object koktai {
        """.stripMargin
     }
 
-    def toHTML =
+    def toHtmlShortPage(i0: Int) = {
       <html lang="zh-Hant-TW">
-        <head>
-          <meta charset="utf8" />
-          <script src="han.min.js"></script>
-          <link rel="stylesheet" media="all" href="style.css" />
-        </head>
+        {HtmlHeaders}
+        <body>
+      <h1>{s"$zhuyin ${removeMarkup(pinyin)}"}</h1>
+        <div class="chpt-comment">{comment.map {_.toHtml}.getOrElse("")}</div>
+      {words map {_.toHTML}}
+      <h3>{sinograms.zipWithIndex map {case (s,i) =>  <a href={s"./${i+i0}.html"}>{s.cjk.toHtml}</a>}}</h3>
+        </body>
+      </html>
+    }
+
+    def toHtmlSinglePage =
+      <html lang="zh-Hant-TW">
+        {HtmlHeaders}
         <body>
           <h1>{s"$zhuyin ${removeMarkup(pinyin)}"}</h1>
           <div class="chpt-comment">{comment.map {_.toHtml}.getOrElse("")}</div>

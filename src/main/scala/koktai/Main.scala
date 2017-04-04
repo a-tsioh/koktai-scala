@@ -142,7 +142,7 @@ object Main extends App {
         else chpt.zhuyin.trim.replace("/", "|")
        val file = new File(basePath, filename + ".html" )
        val fw = new FileWriter(file)
-       fw.write(chpt.toHTML.buildString(true))
+       fw.write(chpt.toHtmlSinglePage.buildString(true))
        fw.close()
      }
     val chapters = data
@@ -152,6 +152,60 @@ object Main extends App {
     for (chpt <- chapters) {
       writeOne(basePath, chpt)
     }
+  }
+
+  def createHtmlTree(basePath: String, data: Iterable[String]) = {
+
+    //mapping to be used to build index.html
+    val indexMapping = collection.mutable.ArrayBuffer.empty[(String,Int)]
+
+    def writeOneSinogram(path:String, i: Int, sino: Sinogram): Unit = {
+      val filename = s"$i.html"
+      val fw = new FileWriter(new File(path, filename ))
+      fw.write(sino.toHTMLShortPage.buildString(true))
+      fw.close()
+    }
+
+    def writeOneChapter(path:String,i: Int, chpt: Chapter): Unit = {
+      val name =
+        if(chpt.zhuyin.trim.isEmpty){
+          println("empty filename")
+          println(chpt.pinyin)
+          "lastEmpty.html"
+        }
+        else chpt.zhuyin.trim
+      indexMapping.append(name -> i)
+      val file = new File(path, s"$i.html" )
+      val fw = new FileWriter(file)
+      fw.write(chpt.toHtmlShortPage(i+1).buildString(true))
+      fw.close()
+    }
+
+    var count = 0
+
+    val chapters = data
+      .map(convertAstralChars)
+      .map(parse(KokTaiParser.chapter, _))
+      .collect { case KokTaiParser.Success(chpt,_) => chpt}
+    for (chpt <- chapters) {
+      writeOneChapter(basePath, count,chpt)
+      chpt.sinograms.zipWithIndex.foreach {case (s,i) => writeOneSinogram(basePath, count+i+1, s) }
+      count += chpt.sinograms.length + 1
+    }
+
+    // writing index
+    val indexPage =
+      <html>
+      {HtmlHeaders}
+        <body>
+        {indexMapping.map{case (s,i) => <a href={s"$i.html"}>{s}</a><br/>}}
+        </body>
+      </html>.buildString(true)
+
+    val fw = new FileWriter(new File(basePath, "index.html"))
+    fw.write(indexPage)
+    fw.close
+    println(count)
   }
 
 
@@ -212,8 +266,8 @@ object Main extends App {
     val data = readByChapters(config.src.get)
 
     //  createWikiFiles(config.outPath.get, mapping, data)
-    createHtmlFiles(config.outPath.get, mapping, data)
-
+    //createHtmlFiles(config.outPath.get, mapping, data)
+    createHtmlTree(config.outPath.get, data)
     println("done")
   }
 
