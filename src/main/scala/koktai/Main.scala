@@ -59,6 +59,13 @@ object Main extends App {
 
   var mappings:Map[FontFamily,Map[Int,String]] = PrepareMappings.readAll()
 
+  def decodeRoundedNumber(codePoint: Int): Option[String] = {
+    if(0xfc6a1 <= codePoint && codePoint <= 0xfc6a9)
+      Some(Character.toChars(0x245f + codePoint - 0xfc6a0) mkString "")
+    else
+      None
+  }
+
   // todo: gérer les <rt> (tout m3 et quelques fk)
   def astralMapping(font: FontFamily, codepoint : Int): String = codepoint match {
     case c if mappings(font).contains(c) => {
@@ -74,14 +81,13 @@ object Main extends App {
     }
     case x =>
       val str = Character.toChars(x) mkString ""
-      val out =
+      val out: String =
         if(font == FK && 0xf8cc4  <= x && x <= 0xffefe )
           s"<mark>$str</mark>"
-        else mappings(Unknown)
-          .getOrElse(x,
-            mappings(NonAstral)
-              .getOrElse(x, str)
-          )
+        else
+          (mappings(Unknown).get(x) orElse
+            mappings(NonAstral).get(x) orElse
+            decodeRoundedNumber(x)).getOrElse(str)
       out
   }
 
