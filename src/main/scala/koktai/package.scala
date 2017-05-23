@@ -18,14 +18,13 @@ package object koktai {
     re_markup.replaceAllIn(s,"")
   }
 
-
+  // <script src="han.min.js"></script>
   val HtmlHeaders =
     <head>
       <meta charset="utf8" />
-      <script src="han.min.js"></script>
-      <link rel="stylesheet" media="all" href="style.css" />
+      <link rel="stylesheet" media="all" href="/style.css" />
     </head>
-
+//</link>https://cdnjs.cloudflare.com/ajax/libs/Han/3.3.0/han.min.css" />
   case class Sinogram(cjk: TextResult, annot:Ruby, comment: Option[TextResult], readings: List[Reading],  words: List[Word]) extends Result {
     def toWiki: String = {
       s"""
@@ -61,17 +60,20 @@ package object koktai {
 
 
     def toHTMLShortPage =
-      <html>
+      <html lang="zh-Hant" class="han-init">
         {HtmlHeaders}
-        <body>
+        <body lang="zh-Hant">
           <div class="sinogram">
             <h2><ruby>{debugCJK.toHtml}<rt>{debugAnnot}</rt></ruby></h2>
             <div class="comment">{comment.map{_.toHtml}.getOrElse("")}</div>
             <div class="readings">{readings.map(_.toHTML)}</div>
             <div class="words">{words.map(_.toHTML)}</div>
           </div>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/Han/3.3.0/han.min.js"></script>
         </body>
       </html>
+
+
 
     def toHTML =
       <div class="sinogram">
@@ -101,7 +103,7 @@ package object koktai {
       <h1>{s"$zhuyin ${removeMarkup(pinyin)}"}</h1>
         <div class="chpt-comment">{comment.map {_.toHtml}.getOrElse("")}</div>
       {words map {_.toHTML}}
-      <h3>{sinograms.zipWithIndex map {case (s,i) =>  <a href={s"./${i+i0}.html"}>{s.cjk.toHtml}</a>}}</h3>
+      <h3>{sinograms.zipWithIndex map {case (s,i) =>  <a href={s"./$i0/$i.html"}>{s.cjk.toHtml}</a>}}</h3>
         </body>
       </html>
     }
@@ -146,24 +148,26 @@ package object koktai {
   case class SomeChar(c:String) extends TextResult
 
   case class KokTaiCJK(cjk:String) extends TextResult {
-    override def toHtml = <mark>{cjk}</mark>
+    override def toHtml = <em class="k">{cjk}</em>
   }
 
   case class CJKRuby(cjk: TextResult, ruby: String) extends TextResult {
     def toWiki: String = s"{{Ruby|${cjk.toString}|${ruby.replace("/","<br/>")}}}"
-
-    def multiRT(ruby: String): scala.xml.Node = {
-      def aux(l: List[String], acc:List[scala.xml.Node]): scala.xml.Node = {
+    def multiRT(ruby: String):scala.xml.NodeSeq = {
+      def aux(l: List[String], acc:List[scala.xml.Node]): scala.xml.NodeSeq = {
         l match {
-          case Nil => <rt>{acc.reverse}</rt>
+          case Nil => {acc.reverse}.map {t => <rtc><rt>{t}</rt></rtc>}
           case List(single) => aux(Nil, scala.xml.Text(removeMarkup(single)):: acc)
-          case hd::tl => aux(tl, <br/> :: scala.xml.Text(removeMarkup(hd)) :: acc)
+          case hd::tl => aux(tl, scala.xml.Text(removeMarkup(hd)) :: acc)
         }
       }
       aux(ruby.split("/").toList, Nil)
     }
 
-    def toHTML = <ruby>{cjk.toHtml}{multiRT(removeMarkup(ruby))}</ruby>
+    def toHTML = <ruby>
+      <rb>{cjk.toHtml}</rb>
+      {multiRT(removeMarkup(ruby))}
+    </ruby>
   }
 
   case class ReadingStart(src: String) extends Result

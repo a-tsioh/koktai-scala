@@ -156,8 +156,7 @@ object Main extends App {
 
   def createHtmlTree(basePath: String, data: Iterable[String]) = {
 
-    //mapping to be used to build index.html
-    val indexMapping = collection.mutable.ArrayBuffer.empty[(String,Int)]
+
 
     def writeOneSinogram(path:String, i: Int, sino: Sinogram): Unit = {
       val filename = s"$i.html"
@@ -166,7 +165,7 @@ object Main extends App {
       fw.close()
     }
 
-    def writeOneChapter(path:String,i: Int, chpt: Chapter): Unit = {
+    def writeOneChapter(path:String, i: Int, chpt: Chapter): (String, Int) = {
       val name =
         if(chpt.zhuyin.trim.isEmpty){
           println("empty filename")
@@ -174,38 +173,40 @@ object Main extends App {
           "lastEmpty.html"
         }
         else chpt.zhuyin.trim
-      indexMapping.append(name -> i)
+      //indexMapping.append(name -> i)
       val file = new File(path, s"$i.html" )
       val fw = new FileWriter(file)
-      fw.write(chpt.toHtmlShortPage(i+1).buildString(true))
+      fw.write(chpt.toHtmlShortPage(i).buildString(true))
       fw.close()
+      new File(path, i.toString).mkdir()
+      (name -> i)
     }
 
-    var count = 0
 
-    val chapters = data
+    val chapters = data.par
       .map(convertAstralChars)
       .map(parse(KokTaiParser.chapter, _))
       .collect { case KokTaiParser.Success(chpt,_) => chpt}
-    for (chpt <- chapters) {
-      writeOneChapter(basePath, count,chpt)
-      chpt.sinograms.zipWithIndex.foreach {case (s,i) => writeOneSinogram(basePath, count+i+1, s) }
-      count += chpt.sinograms.length + 1
-    }
+      .seq.zipWithIndex
+    val indexMapping = (for((chpt, count) <- chapters.par) yield {
+      val idx = writeOneChapter(basePath, count,chpt)
+      chpt.sinograms.zipWithIndex.foreach {case (s,i) => writeOneSinogram(s"$basePath/$count/", i, s) }
+      idx
+    }).seq.toMap
 
     // writing index
     val indexPage =
-      <html>
+      <html  lang="zh-Hant" class="han-init">
       {HtmlHeaders}
-        <body>
+        <body  lang="zh-Hant">
         {indexMapping.map{case (s,i) => <a href={s"$i.html"}>{s}</a><br/>}}
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/Han/3.3.0/han.min.js"></script>
         </body>
       </html>.buildString(true)
 
     val fw = new FileWriter(new File(basePath, "index.html"))
     fw.write(indexPage)
     fw.close
-    println(count)
   }
 
 
