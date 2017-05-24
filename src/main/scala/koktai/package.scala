@@ -22,7 +22,7 @@ package object koktai {
   val HtmlHeaders =
     <head>
       <meta charset="utf8" />
-      <link rel="stylesheet" media="all" href="/style.css" />
+      <link rel="stylesheet" media="all" href="/koktai-scala/style.css" />
     </head>
 //</link>https://cdnjs.cloudflare.com/ajax/libs/Han/3.3.0/han.min.css" />
   case class Sinogram(cjk: TextResult, annot:Ruby, comment: Option[TextResult], readings: List[Reading],  words: List[Word]) extends Result {
