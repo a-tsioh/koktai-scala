@@ -39,7 +39,7 @@ object KokTaiParser extends RegexParsers {
     rep(word) ^^ {
     case ( title ~ _ ~ zhuyin ~ comment  ~ readings ~ words) =>
       // todo: correct point · not inside <rt>
-      Sinogram(title, zhuyin.getOrElse("".asInstanceOf[Ruby]), comment, readings, words)
+      Sinogram(title, zhuyin.getOrElse(Ruby("")), comment, readings, words)
   }
     //.getOrElse("".asInstanceOf[Ruby])
 
@@ -57,13 +57,13 @@ object KokTaiParser extends RegexParsers {
   def wordTitleAnyChar: Parser[TextResult] =
   annotedCJK |
     koktaiCjk |
-    simpleAnnotReading ^^ SomeChar |
+    simpleAnnotReading  |
     "[^】]".r ^^ SomeChar
 
   def wordContentAnyChar: Parser[TextResult] =
     annotedCJK   |
       koktaiCjk |
-  simpleAnnotReading ^^ SomeChar |
+  simpleAnnotReading |
       "~(?!t96|fm7;[國台普])".r ^^^ SomeChar("~") |
       "<(?!CHAR)".r ^^^ SomeChar("<") |
       "." ^^^ SomeChar(".") |
@@ -71,7 +71,7 @@ object KokTaiParser extends RegexParsers {
 
   def wordContent: Parser[Text] = rep( wordContentAnyChar ) <~ """(?=~t96|<CHAR|~fm7;[國台普]|$)""".r ^^ Text
 
-  def zhuyin: Parser[Zhuyin] = """([主个·\u3105-\u312d\u31a0-\u31ba一ˊˇˋ˪˫ ͘ ]〾?)+""".r ^^ { _.asInstanceOf[Zhuyin]}
+  def zhuyin: Parser[Zhuyin] = """([主个·\u3105-\u312d\u31a0-\u31ba一ˊˇˋ˪˫ ͘ ]〾?)+""".r ^^ Zhuyin
   //todo: c'est quoi ce 主 et ce 个
 
   def cjk: Parser[CJK] =
@@ -99,13 +99,13 @@ object KokTaiParser extends RegexParsers {
     koktaiCjk |
       cjk |
       """~fk;|~fm7;|[…\( \)∟←→／/]""".r ^^ SomeChar |
-      zhuyin ^^ SomeChar
+      zhuyin
 
   def simpleAnnotReading: Parser[Ruby] =
-    "<mark>&#xf856f;</mark>" ^^^ "│ㄋ".asInstanceOf[Ruby] |
-      "<mark>&#xf815e;</mark>" ^^^ "│ㄋ".asInstanceOf[Ruby] |
+    "<mark>&#xf856f;</mark>" ^^^ "│ㄋ" ^^ Ruby |
+      "<mark>&#xf815e;</mark>" ^^^ "│ㄋ" ^^ Ruby |
       opt("·") ~ "<rt>" ~ repsep(zhuyin, "/") <~ "</rt>" ^^ {
-        case ( point ~ _ ~  syllable) => s"${point.getOrElse("")} ${syllable.mkString("/")}".asInstanceOf[Ruby]
+        case ( point ~ _ ~  syllable) => Ruby(s"${point.getOrElse("")} ${syllable.mkString("/")}")
       }
 
   def annotedCJK: Parser[CJKRuby] =
