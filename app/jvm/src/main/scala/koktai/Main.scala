@@ -143,8 +143,8 @@ object Main extends App {
         }
         else chpt.zhuyin.trim
       //indexMapping.append(name -> i)
-      val file = new File(path, s"chpt-$i.html" )
-      chapterPickler.toFile(file.getAbsolutePath, chpt)
+      val file = new File(path, s"chpt-$i.pkl" )
+      chapterPickler.toFile(file.getAbsolutePath, (i,chpt))
       name -> i
     }
 
@@ -157,13 +157,15 @@ object Main extends App {
       val idx = writeOneChapter(basePath, count,chpt)
       chpt.sinograms.zipWithIndex.foreach {case (s,i) => writeOneSinogram(s"$basePath/",count, i, s) }
       idx
-    }).seq.toMap
+    }).seq
 
+    val initialsMapping = indexMapping.foldLeft(Map.empty[String, Map[String, Int]].withDefaultValue(Map.empty)) {case (m,(syl,i)) =>
+      val firstLetter = syl.substring(0,1)
+        m + (firstLetter -> (m(firstLetter) + (syl -> i)))
+    }
 
-
-//    val fch = new FileOutputStream(new File(basePath, "index.html")).getChannel
-//    fch.write(Pickle.intoBytes(indexMapping))
-//    fch.close()
+    val idxFile = new File(basePath, "index.pkl")
+    indexPickler.toFile(idxFile.getAbsolutePath, initialsMapping)
   }
 
 

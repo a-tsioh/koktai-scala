@@ -9,6 +9,7 @@ import boopickle.Default._
 import scala.scalajs.js
 import js.annotation._
 import org.scalajs.dom
+import scala.scalajs.js.JSConverters._
 
 import scala.concurrent.duration.Duration
 import scala.scalajs.js.typedarray.{ArrayBuffer, TypedArrayBuffer}
@@ -30,9 +31,28 @@ object JsLoader extends js.Object {
     .foreach(callback)
   }
 
-  def getSinogram: (String, js.Function1[js.Object, js.Any]) => Unit = getSomething({bb =>
+
+
+  def getSinogram: js.Function2[String, js.Function1[js.Object, js.Any], Unit] = getSomething({bb =>
     val s =Unpickle[Sinogram].fromBytes(bb)
     JsData.SinogramFromParse(s)
   })
-  def getChapter: (String, js.Function1[js.Object, js.Any]) => Unit = getSomething(Unpickle[Chapter].fromBytes)
+
+
+  def getChapter: js.Function2[String, js.Function1[js.Object, js.Any], Unit] = getSomething {bb =>
+    val (i,ch) =Unpickle[(Int,Chapter)].fromBytes(bb)
+    JsData.ChapterFromParse(i,ch)
+  }
+
+  def getIndex: js.Function2[String, js.Function1[js.Object, js.Any], Unit] = getSomething({ bb =>
+    val m = Unpickle[Map[String, Map[String, Int]]].fromBytes(bb)
+
+    new js.Object {
+      def get(zhuyin: String) = m.get(zhuyin.substring(0,1)).map(_.get(zhuyin)).getOrElse("0")
+      def getAll() =
+        m.toList.sortBy(_._1).map( l =>
+          Array(l._1,
+          l._2.toList.sorted.map {case (syl,i) => Array(syl, i.toString).toJSArray}.toJSArray).toJSArray).toJSArray
+    }
+  })
 }

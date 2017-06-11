@@ -23,5 +23,6 @@ class KoktaiPickler[T](pickle: (T => ByteBuffer), unpickle: (ByteBuffer => T)) {
   }
 }
 
-object sinogramPickler extends KoktaiPickler[Sinogram](Pickle.intoBytes(_), Unpickle[Sinogram].fromBytes(_) )
-object chapterPickler extends KoktaiPickler[Chapter](Pickle.intoBytes(_), Unpickle[Chapter].fromBytes(_) )
+object sinogramPickler extends KoktaiPickler[Sinogram](Pickle.intoBytes(_), Unpickle[Sinogram].fromBytes(_))
+object chapterPickler extends KoktaiPickler[(Int,Chapter)](Pickle.intoBytes(_), Unpickle[(Int,Chapter)].fromBytes(_))
+object indexPickler extends KoktaiPickler[Map[String, Map[String, Int]]](Pickle.intoBytes(_), Unpickle[Map[String, Map[String, Int]]].fromBytes(_))

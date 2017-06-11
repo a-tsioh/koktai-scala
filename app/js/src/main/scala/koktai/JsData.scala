@@ -13,14 +13,46 @@ object JsData  extends js.Object {
 
 //  case class Sinogram(cjk: TextResult, annot:Ruby, comment: Option[TextResult], readings: List[Reading],  words: List[Word]) extends Result {
   @ScalaJSDefined
-  class Sinogram(val cjk: TextResult, val ruby: SimpleString, val comment: TextResult)  extends js.Object
+  class Sinogram(val cjk: TextResult, val ruby: String, val comment: TextResult, val words: js.Array[Word])  extends js.Object
   implicit def SinogramFromParse(s: koktai.Sinogram): Sinogram = {
     new Sinogram(
       TextResultFromParse(s.cjk),
-      SimpleStringFromParse(s.annot),
+      s.annot.s,
       s.comment
         .map(TextResultFromParse)
-        .getOrElse(new SimpleString(""))
+        .getOrElse(new SimpleString("")),
+      s.words.toArray.map(WordFromParse).toJSArray
+    )
+  }
+
+
+//  case class Chapter(zhuyin: String, pinyin: String, comment: Option[TextResult], sinograms: List[Sinogram], words: List[Word]) extends Result
+  @ScalaJSDefined
+  class Chapter(val index: Int, val zhuyin: String, val pinyin: String, val comment: TextResult, val sinograms: js.Array[Sinogram]) extends js.Object
+
+  implicit def ChapterFromParse(i: Int, c: koktai.Chapter): Chapter = {
+    new Chapter(
+      i,
+      c.zhuyin,
+      c.pinyin,
+      c.comment
+        .map(TextResultFromParse)
+        .getOrElse(new SimpleString("")),
+      c.sinograms.map(SinogramFromParse).toJSArray
+    )
+
+  }
+
+  //case class Word(title: Text, num: Option[Int], text: Text) extends Result {
+
+  @ScalaJSDefined
+  class Word(val title: TextResult, val num: Option[Int], val definition: TextResult) extends js.Object
+
+  implicit def WordFromParse(w: koktai.Word): Word = {
+    new Word(
+      TextResultFromParse(w.title),
+      w.num,
+      TextResultFromParse(w.text)
     )
   }
 
@@ -45,10 +77,10 @@ object JsData  extends js.Object {
   class Text(val content: js.Array[TextResult]) extends TextResult("Text")
 
   @ScalaJSDefined
-  class CJKRuby(text: TextResult, ruby: String) extends TextResult("CJKRuby")
+  class CJKRuby(val text: TextResult,val ruby: String) extends TextResult("CJKRuby")
 
   @ScalaJSDefined
-  class KoktaiCJK(cjk: String) extends TextResult("KoktaiCJK")
+  class KoktaiCJK(val cjk: String) extends TextResult("KoktaiCJK")
 
 
 
