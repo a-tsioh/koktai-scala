@@ -130,7 +130,7 @@ object Main extends App {
   def createPicklesTree(basePath: String, data: Iterable[String]) = {
 
     def writeOneSinogram(path: String, chpt: Int, i: Int, sino: Sinogram): Unit = {
-      val filename = s"sino-$chpt-$i.pkl"
+      val filename = s"$path/sino-$chpt-$i.pkl"
       sinogramPickler.toFile(filename, sino)
     }
 
@@ -155,7 +155,7 @@ object Main extends App {
       .seq.zipWithIndex
     val indexMapping = (for((chpt, count) <- chapters.par) yield {
       val idx = writeOneChapter(basePath, count,chpt)
-      chpt.sinograms.zipWithIndex.foreach {case (s,i) => writeOneSinogram(s"$basePath/",count, i, s) }
+      chpt.sinograms.zipWithIndex.foreach {case (s,i) => writeOneSinogram(s"$basePath",count, i, s) }
       idx
     }).seq
 

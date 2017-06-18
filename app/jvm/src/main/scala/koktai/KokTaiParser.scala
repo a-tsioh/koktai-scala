@@ -11,11 +11,8 @@ object KokTaiParser extends RegexParsers {
 
 
   override def skipWhitespace = true
-  override val whiteSpace = """([\s　 \n]|\.本文|~fm7t168bb1;|~fm7t168;|~fm3t168bb1;|~fm3t168;|~fm3bt180;|~bt0;|~fkt168bb1;|~fm3t84bb1;|~fk;|~fm3;|~t84;|~fd6;|~fd0;|~bt180;|~t112fd0;|~t112;|~fb7bb1;|~fm3bb1;|~bt180;|~bt0;|~bt315;|~fm3t42;|~fkbb2;)+""".r
+  override val whiteSpace = """([\s　 \n]|\.本文|~bb1;|~fm7bt0;|~fb7;|~fm7t168bb1;|~fm7t168;|~fm3t168bb1;|~fm3t168;|~fm3bt180;|~bt0;|~fkt168bb1;|~fm3t84bb1;|~fk;|~fm3;|~t84;|~fd6;|~fd0;|~bt180;|~t112fd0;|~t112;|~fb7bb1;|~fm3bb1;|~bt180;|~bt0;|~bt315;|~fm3t42;|~fkbb2;)+""".r
  //override val whiteSpace = """([\s　 \n]|\.本文|~[a-z0-9]+;)""".r
-
-
-
 
 
 
@@ -26,7 +23,7 @@ object KokTaiParser extends RegexParsers {
    // opt(""".*?(?=<CHAR|~t96|~fm7;[國台普]$)""".r) ~
       rep(word) ~
       rep(sinogram) ^^ {
-    case (zy ~ py ~ comment ~ words ~ sino ) => Chapter(zy mkString "", py.getOrElse("ai3???"), comment, sino, words)
+    case (zy ~ py ~ comment ~ words ~ sino ) => Chapter(cleanupString(zy mkString ""), cleanupString(py.getOrElse("ai3???")), comment.map(cleanupText), sino, words)
   }
 
   def sinogram: Parser[Sinogram] = "<CHAR/>"  ~>
@@ -39,20 +36,20 @@ object KokTaiParser extends RegexParsers {
     rep(word) ^^ {
     case ( title ~ _ ~ zhuyin ~ comment  ~ readings ~ words) =>
       // todo: correct point · not inside <rt>
-      Sinogram(title, zhuyin.getOrElse(Ruby("")), comment, readings, words)
+      Sinogram(cleanupTextResult(title), zhuyin.map(cleanupStringResult).getOrElse(Ruby("")), comment.map(cleanupText), readings, words)
   }
     //.getOrElse("".asInstanceOf[Ruby])
 
 
 
   def readingStart: Parser[ReadingStart ] = """~fm7(bt0)?;""".r ~> """國音|台甘|普 *閩""".r ^^ ReadingStart
-  def reading: Parser[Reading] = readingStart ~ wordContent ^^ {case (start ~ content) => Reading(start.src, content)}
+  def reading: Parser[Reading] = readingStart ~ wordContent ^^ {case (start ~ content) => Reading(cleanupString(start.src), cleanupText(content))}
 
   def wordStart: Parser[WordStart.type] = "~t96;" ^^^ WordStart
   def word: Parser[Word] = wordStart ~>
     "【"  ~> rep(wordTitleAnyChar) ~ "】" ~
     opt("\\d+".r) ~ wordContent ^^  {
-    case (title ~ _ ~ num ~ content) => Word(Text(title), num.map(_.toInt), content)}
+    case (title ~ _ ~ num ~ content) => Word(cleanupText(Text(title)), num.map(_.toInt), cleanupText(content))}
 
   def wordTitleAnyChar: Parser[TextResult] =
   annotedCJK |

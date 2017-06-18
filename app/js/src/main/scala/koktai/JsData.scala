@@ -13,7 +13,7 @@ object JsData  extends js.Object {
 
 //  case class Sinogram(cjk: TextResult, annot:Ruby, comment: Option[TextResult], readings: List[Reading],  words: List[Word]) extends Result {
   @ScalaJSDefined
-  class Sinogram(val cjk: TextResult, val ruby: String, val comment: TextResult, val words: js.Array[Word])  extends js.Object
+  class Sinogram(val cjk: TextResult, val ruby: String, val comment: TextResult, val readings: js.Array[Reading], val words: js.Array[Word])  extends js.Object
   implicit def SinogramFromParse(s: koktai.Sinogram): Sinogram = {
     new Sinogram(
       TextResultFromParse(s.cjk),
@@ -21,8 +21,15 @@ object JsData  extends js.Object {
       s.comment
         .map(TextResultFromParse)
         .getOrElse(new SimpleString("")),
+      s.readings.map(ReadingFromParse).toJSArray,
       s.words.toArray.map(WordFromParse).toJSArray
     )
+  }
+
+  @ScalaJSDefined
+  class Reading(val src: String, val content: TextResult) extends js.Object
+  implicit def ReadingFromParse(r: koktai.Reading): Reading = {
+    new Reading(r.src, TextResultFromParse(r.content))
   }
 
 

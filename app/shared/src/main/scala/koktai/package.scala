@@ -60,6 +60,12 @@ package object koktai {
     }
   }
 
+  def cleanupTextResult(tr: TextResult): TextResult = tr match {
+    case x: Text => cleanupText(x)
+    case sr: StringResult => cleanupStringResult(sr)
+    case other => other
+  }
+
   abstract sealed class StringResult(val s: String) extends TextResult
   case class Zhuyin(zh: String) extends StringResult(zh)
   case class CJK(c: String) extends StringResult(c)
@@ -69,9 +75,32 @@ package object koktai {
 
   implicit def srToStr(sr: StringResult): String = sr.s
 
+  def cleanupStringResult[T <: StringResult](sr: T): T = {
+    sr match {
+      case Zhuyin(s) => Zhuyin(re_markup.replaceAllIn(s,"")).asInstanceOf[T]
+      case CJK(s) => CJK(re_markup.replaceAllIn(s,"")).asInstanceOf[T]
+      case Ruby(s) => Ruby(re_markup.replaceAllIn(s,"")).asInstanceOf[T]
+      case Raw(s) => Raw(re_markup.replaceAllIn(s,"")).asInstanceOf[T]
+      case SomeChar(s) => SomeChar(re_markup.replaceAllIn(s,"")).asInstanceOf[T]
+    }
+  }
+
 
 
   case class Text(content: List[TextResult]) extends TextResult
+
+  def cleanupText(t: Text) = Text(t.content.map { x =>
+    x match {
+      case Zhuyin(s) => Zhuyin(re_markup.replaceAllIn(s, ""))
+      case CJK(s) => CJK(re_markup.replaceAllIn(s, ""))
+      case Ruby(s) => Ruby(re_markup.replaceAllIn(s, ""))
+      case Raw(s) => Raw(re_markup.replaceAllIn(s, ""))
+      case SomeChar(s) => SomeChar(re_markup.replaceAllIn(s, ""))
+      case other => other
+    }
+  })
+
+  def cleanupString(s: String) = re_markup.replaceAllIn(s,"")
 
 
   case class KokTaiCJK(cjk:String) extends TextResult
