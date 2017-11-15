@@ -86,7 +86,8 @@ def recode(s):
                 return "<rt>%s</rt>" % (k_mapping[code],)
             if sub in private_to_unicode:
                 return private_to_unicode[sub]
-            return "<mark>&#xf%s;</mark>" % (code,)
+            #return "<mark>&#xf%s;</mark>" % (code,)
+            return u"<mark>%s</mark>" % (sub,)
         return match_apply(k2_re, f, s)
     def k3(s):
         def f(sub):

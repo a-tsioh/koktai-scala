@@ -2,6 +2,10 @@ enablePlugins(ScalaJSPlugin)
 
 scalaJSModuleKind := ModuleKind.CommonJSModule
 
+scalaJSUseMainModuleInitializer := true
+
+mainClass := Some("koktai.Main")
+
 val app = crossProject.crossType(CrossType.Full).in(file("./app")).settings(
   name := "koktai-scala",
   version := "0.2",
@@ -10,7 +14,8 @@ val app = crossProject.crossType(CrossType.Full).in(file("./app")).settings(
   //  baseDirectory.value  / "shared" / "main" / "scala",
   libraryDependencies ++= Seq(
 
-  )
+  ),
+  mainClass in (Compile, run) := Some("koktai.Main")
 )
   .jsSettings(
     scalaVersion := "2.12.2",

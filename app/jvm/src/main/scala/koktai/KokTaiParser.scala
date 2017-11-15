@@ -86,7 +86,8 @@ object KokTaiParser extends RegexParsers {
       |\x{2F800}-\x{2FA1F}])""".stripMargin.replace("\n","").r ^^ CJK
 
   def koktaiCjk: Parser[KokTaiCJK] =
-      "<mark>" ~> ".".r <~ "</mark>" ^^ {case cjk => KokTaiCJK(cjk)}
+      "<mark>" ~> "[^<]+".r <~ "</mark>" ^^ {case cjk => KokTaiCJK(cjk)}
+
 
 
   def sinogramTitle: Parser[TextResult] =

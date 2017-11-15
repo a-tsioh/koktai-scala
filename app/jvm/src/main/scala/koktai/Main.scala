@@ -86,15 +86,13 @@ object Main extends App {
       else s"<mark>$out</mark>"
     }
     case x =>
-      val str = Character.toChars(x) mkString ""
-      val out: String =
-        if(font == FK && 0xf8cc4  <= x && x <= 0xffefe )
-          s"<mark>$str</mark>"
+      (mappings(NonAstral).get(x) orElse (
+        if (font == FK && 0xf8cc4 <= x && x <= 0xffefe)
+          Some(s"<mark>${Character.toChars(x) mkString ""}</mark>")
         else
-          (mappings(Unknown).get(x) orElse
-            mappings(NonAstral).get(x) orElse
-            decodeRoundedNumber(x)).getOrElse(str)
-      out
+          mappings(Unknown).get(x) orElse
+            decodeRoundedNumber(x)
+        )).getOrElse(Character.toChars(x) mkString "")
   }
 
   def convertAstralChars(input:String): String = {
@@ -126,6 +124,31 @@ object Main extends App {
     ).reverseMap(_.reverse.mkString("")) // rebuild one string per chapter
   }
 
+  def extractKoktaiCJKFromTextResult(tr: TextResult): Set[String] = tr match {
+    case koktai.KokTaiCJK(s) => println(s); Set(s)
+    case koktai.Text(l) => l.map(extractKoktaiCJKFromTextResult).foldLeft(Set.empty[String])(_ union _)
+    case koktai.CJKRuby(cjk, _) => extractKoktaiCJKFromTextResult(cjk)
+    case _:koktai.StringResult => Set.empty
+  }
+
+  def extractKoktaiCJKFromWord(w: Word): Set[String] = {
+    extractKoktaiCJKFromTextResult(w.title) union
+      extractKoktaiCJKFromTextResult(w.text)
+  }
+
+  def extractKoktaiCJKFromSinogram(sino: Sinogram): Set[String] = {
+    extractKoktaiCJKFromTextResult(sino.cjk) union
+    sino.readings.map(x => extractKoktaiCJKFromTextResult(x.content)).foldLeft(Set.empty[String])(_ union _) union
+    sino.words.map(extractKoktaiCJKFromWord).foldLeft(Set.empty[String])(_ union _)   union
+    sino.comment.map(extractKoktaiCJKFromTextResult).getOrElse(Set.empty)
+  }
+
+  def extractKoktaiCJKFromChapter(chpt: Chapter): Set[String] = {
+    println(chpt.pinyin)
+    chpt.sinograms.map(extractKoktaiCJKFromSinogram).foldLeft(Set.empty[String])(_ union _) union
+    chpt.words.map(extractKoktaiCJKFromWord).foldLeft(Set.empty[String])(_ union _) union
+    chpt.comment.map(extractKoktaiCJKFromTextResult).getOrElse(Set.empty)
+  }
 
   def createPicklesTree(basePath: String, data: Iterable[String]) = {
 
@@ -153,11 +176,23 @@ object Main extends App {
       .map(parse(KokTaiParser.chapter, _))
       .collect { case KokTaiParser.Success(chpt,_) => chpt}
       .seq.zipWithIndex
+
     val indexMapping = (for((chpt, count) <- chapters.par) yield {
       val idx = writeOneChapter(basePath, count,chpt)
       chpt.sinograms.zipWithIndex.foreach {case (s,i) => writeOneSinogram(s"$basePath",count, i, s) }
       idx
     }).seq
+
+    val privatesCJK = chapters
+      .par
+      .map(x => extractKoktaiCJKFromChapter(x._1))
+      .foldLeft(Set.empty[String]){_ union _}
+
+    val privateCJKFile = new File(basePath, "privateCJK.txt")
+    val fw = new FileWriter(privateCJKFile)
+    privatesCJK.toList.sorted.foreach(c => fw.write(s"$c\n"))
+    fw.close()
+
 
     val initialsMapping = indexMapping.foldLeft(Map.empty[String, Map[String, Int]].withDefaultValue(Map.empty)) {case (m,(syl,i)) =>
       val firstLetter = syl.substring(0,1)
@@ -191,6 +226,7 @@ object Main extends App {
     //createHtmlTree(config.outPath.get, data)
     createPicklesTree(config.outPath.get, data)
     println("done")
+    println(mappings.values.map(_.size).sum)
   }
 
 }
