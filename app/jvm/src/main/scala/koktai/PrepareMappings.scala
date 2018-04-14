@@ -17,6 +17,22 @@ object PrepareMappings {
     data
   }
 
+  def loadDodo(path: String): Map[Int, String] = {
+    val src = scala.io.Source.fromFile(path)
+    val data = src.getLines()
+      .filterNot(_.startsWith("Big5"))
+      .map(_.split(","))
+      .collect {
+        case Array(code, sinogram, user) =>
+          val c = code.replace("+", "")
+          if (sinogram != "Ⓧ" && c.length < 7) Some(Integer.valueOf(c.toLowerCase,16).toInt -> sinogram.trim)
+          else None
+      }
+      .flatten
+      .toMap
+    data
+  }
+
   def convertHexaKeys(m: Map[String, String]):Map[Int, String] = {
     m.map { case (k, v) =>
       Integer.valueOf("f" + k, 16).toInt -> v
@@ -37,12 +53,13 @@ object PrepareMappings {
     val m3 = loadJson("./Data/m3.json")
     val k =  loadJson("./Data/k.json")
     val nonAstral = loadJson("./Data/mapping.json")
+    val nonAstral2 = loadDodo("./Data/koktai-dodo-all.csv")
     val missings = loadJson("./Data/missings.json")
 
     Map(
       FM3 -> convertHexaKeys(m3),
       FK  -> convertHexaKeys(k),
-      NonAstral -> convertStringKeys(nonAstral),
+      NonAstral -> (nonAstral2 ++ convertStringKeys(nonAstral)),
       Unknown -> convertHexaKeys(missings)
     )
   }

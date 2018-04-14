@@ -47,7 +47,7 @@ object Main extends App {
     val RELine = "^B\\+(....),[^,]+,([^,]+),.*".r("code","ids")
     (for (line <- src.getLines().drop(1)) yield {
       line match {
-        case RELine(code, ids) => Some(code -> s"<ids>$ids</ids>")
+        case RELine(code, ids) => Some(code -> ids)
         case _ =>
           println(s"can't read $line")
           None
@@ -89,6 +89,7 @@ object Main extends App {
       (mappings(NonAstral).get(x) orElse (
         if (font == FK && 0xf8cc4 <= x && x <= 0xffefe)
           Some(s"<mark>${Character.toChars(x) mkString ""}</mark>")
+          //Some(Character.toChars(x) mkString "")
         else
           mappings(Unknown).get(x) orElse
             decodeRoundedNumber(x)
@@ -106,7 +107,7 @@ object Main extends App {
         case c #:: tl => aux(tl, astralMapping(currentFont, c.toInt)::out, currentFont)
       }
     }
-    aux(streamInput).replace("</rt>/<rt>", "/")
+    aux(streamInput)// not for TEI .replace("</rt>/<rt>", "/")
   }
 
   def readByChapters(file: String): Seq[String] = {
