@@ -1,6 +1,6 @@
 package koktai
 
-import java.io.FileWriter
+import java.io.{File, FileWriter}
 import java.lang.Character.UnicodeScript
 
 import koktai.KokTaiParser.parse
@@ -17,7 +17,8 @@ object ExporterTEI {
   sealed abstract class NewChar
   case class Hanji(ids: String, code: String) extends NewChar
   case class HanjiNoIDS(code: String) extends NewChar
-  case class TsuIm(id: String) extends NewChar
+  case class MappedHanji(code: Int, cjk: String) extends  NewChar
+  case class TsuIm(id: String, code: String) extends NewChar
   val newChars = collection.mutable.HashSet.empty[NewChar]
 
   Main.mappings = PrepareMappings.readAll()
@@ -28,13 +29,18 @@ object ExporterTEI {
     case koktai.Text(l) => l.flatMap(trToStr)
     case CJKRuby(cjk, ruby) =>
       val s = ruby.r.trim
-      newChars.add(TsuIm(s))
-      trToStr(cjk) ++ Seq(<g ref={s"#$s"}>{s}</g>)
-    case Ruby(r) =>
+      val c = ruby.code.toHexString
+      newChars.add(TsuIm(s, ruby.code.toHexString))
+      trToStr(cjk) ++ Seq(<g ref={s"#$c"}>{s}</g>)
+    case Ruby(r, c) =>
       val s = r.trim
-      newChars.add(TsuIm(s))
-      <g ref={s"#$s"}>{s}</g>
-    case KokTaiCJK(cjk) =>
+      val hex = c.toHexString
+      newChars.add(TsuIm(s, hex))
+      <g ref={s"#$hex"}>{s}</g>
+    case KokTaiCJK(cjk, code, true) =>
+      newChars.add(MappedHanji(code, cjk))
+      <g ref={code.toHexString}>{cjk}</g>
+    case KokTaiCJK(cjk, code, false) =>
       val hexa =  Integer.toHexString(Character.codePointAt(cjk,0))
       mapping.get(hexa.substring(1)) match {
         case Some(ids) =>
@@ -127,11 +133,12 @@ object ExporterTEI {
       <desc>{ids}</desc>
     </charDesc>
 
-  def tsuImMetaData(r: String): Elem =
+  def tsuImMetaData(r: String, code: String): Elem =
     <charDesc>
       <char id={s"#$r"}>
         <charName>TAIWANESE TSU-IM SYLLABLE {r}</charName>
         <mapping type="standard">{r}</mapping>
+        <mapping type="PUA">{s"U+$code"}</mapping>
         <charProp>
           <unicodeName>general-category</unicodeName>
           <value>Lo</value>
@@ -150,16 +157,33 @@ object ExporterTEI {
       </char>
     </charDesc>
 
+  def mappedChar(code: Int, cjk: String): Elem =
+    <charDesc>
+      <char id={s"#$code"}>
+        <charName>TAIWANESE HANJI {code.toHexString} mapped to UNICODE {cjk}</charName>
+        <charProp>
+          <unicodeName>general-category</unicodeName>
+          <value>Lo</value>
+        </charProp>
+        <mapping type="standard">{cjk}</mapping>
+      </char>
+    </charDesc>
+
   def newCharDecl(nc: NewChar): Elem = nc match {
-    case TsuIm(id) => tsuImMetaData(id)
+    case TsuIm(id, code) => tsuImMetaData(id, code)
     case Hanji(ids, code) => hanjiMetaData(ids, code)
     case HanjiNoIDS(code) => missingChar(code)
+    case MappedHanji(code, cjk) =>mappedChar(code, cjk)
   }
 
   def parseData(): Seq[koktai.Chapter] = {
     val data = readByChapters(contentFile)
-    data.par
+    val txt = data.par
       .map(convertAstralChars)
+    val fw = new FileWriter(new File("/tmp/debug"))
+    txt.seq.foreach(l => fw.write(s"$l\n"))
+    fw.close()
+    txt
       .map(parse(KokTaiParser.chapter, _))
       .collect { case KokTaiParser.Success(chpt,_) => chpt}
       .seq

@@ -50,11 +50,11 @@ object PrepareMappings {
 
 
   def readAll():Map[FontFamily, Map[Int, String]] = {
-    val m3 = loadJson("./Data/m3.json")
-    val k =  loadJson("./Data/k.json")
+    val m3 = loadJson("./Data/m3.json") // tsu-im
+    val k =  loadJson("./Data/k.json")  // tsu-im from k font
     val nonAstral = loadJson("./Data/mapping.json")
-    val nonAstral2 = loadDodo("./Data/koktai-dodo-all.csv")
-    val missings = loadJson("./Data/missings.json")
+    val nonAstral2 = loadDodo("./Data/koktai-dodo-all.csv")  // mapped from k font
+    val missings = loadJson("./Data/missings.json")  // still missing after crowdsourcing
 
     Map(
       FM3 -> convertHexaKeys(m3),
