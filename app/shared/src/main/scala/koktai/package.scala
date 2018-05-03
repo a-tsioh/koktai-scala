@@ -132,6 +132,40 @@ package object koktai {
        re_markup.replaceAllIn(title.content.map(rubyToWiki) mkString "","")
     }
 
+    def noZhuyin: String = {
+      def aux(t:Text): Text = {
+        Text(t.content.collect {
+          //case Zhuyin(zh: String) =>
+          case cjk: CJK => cjk
+          //case r:Ruby(r: String, code: Int) extends StringResult(r)
+          case CJKRuby(tr,ruby) => tr
+          case r: Raw => r
+          case c: SomeChar => c
+          case txt: Text => aux(txt)
+        })
+      }
+      aux(title).toString
+    }
+
+    def onlyZhuyin: String = {
+      def aux(t:Text): Text = {
+        Text(t.content.collect {
+          case Zhuyin(s) => Raw(s)
+          case Ruby(r, _) => Raw(r)
+          case CJKRuby(tr,ruby) => Raw(ruby.r)
+          case txt: Text => aux(txt)
+        })
+      }
+      aux(title).toString
+    }
+
+    private val posRE = "\\[([^]]+)\\]".r("pos")
+    def partOfSpeech: Option[String] =
+      posRE
+        .findFirstMatchIn(text.toString.take(20))
+        .map(_.group("pos"))
+
+
 
     def textToWiki: String = {
       def rubyToWiki(r:TextResult): String = {

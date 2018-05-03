@@ -36,10 +36,10 @@ object ExporterTEI {
       val s = r.trim
       val hex = c.toHexString
       newChars.add(TsuIm(s, hex))
-      <g ref={s"#$hex"}>{s}</g>
+      <g ref={s"#$s"}>{s}</g>
     case KokTaiCJK(cjk, code, true) =>
       newChars.add(MappedHanji(code, cjk))
-      <g ref={code.toHexString}>{cjk}</g>
+      <g ref={"#" + code.toHexString}>{cjk}</g>
     case KokTaiCJK(cjk, code, false) =>
       val hexa =  Integer.toHexString(Character.codePointAt(cjk,0))
       mapping.get(hexa.substring(1)) match {
@@ -77,11 +77,9 @@ object ExporterTEI {
     <TEI>
       {teiHeader(newChars)}
       <text>
-        <text>
-          <front></front>
-          <body>{content}</body>
-          <back></back>
-        </text>
+        <front></front>
+        <body>{content}</body>
+        <back></back>
       </text>
     </TEI>
 
@@ -103,7 +101,18 @@ object ExporterTEI {
 
   def wordToTEI(word: Word): Elem =
     <entryFree>
-      <form><orth>{trToStr(word.title)}</orth></form>
+      <form>
+        <orth type="full">{trToStr(word.title)}</orth>
+        <orth type="no-zhuyin">{word.noZhuyin}</orth>
+        <pron>{word.onlyZhuyin}</pron>
+      </form>
+      {
+        word.partOfSpeech.map { pos =>
+          <gramGrp>
+            <pos>{pos}</pos>
+          </gramGrp>
+        }.orNull
+      }
       <def>{word.num.orNull}{trToStr(word.text)}</def>
     </entryFree>
 
@@ -121,7 +130,7 @@ object ExporterTEI {
 
   def hanjiMetaData(ids: String, code:String): Elem =
     <charDesc>
-      <char id={s"#$code"}>
+      <char id={s"$code"}>
         <charName>TAIWANESE HANJI {ids}</charName>
         <mapping type="PUA">{s"U+$code"}</mapping>
         <mapping type="IDS">{ids}</mapping>
@@ -135,20 +144,16 @@ object ExporterTEI {
 
   def tsuImMetaData(r: String, code: String): Elem =
     <charDesc>
-      <char id={s"#$r"}>
+      <char id={s"$r"}>
         <charName>TAIWANESE TSU-IM SYLLABLE {r}</charName>
-        <mapping type="standard">{r}</mapping>
+        <mapping type="standard" style="writing-mode: vertical-rl">{r}</mapping>
         <mapping type="PUA">{s"U+$code"}</mapping>
-        <charProp>
-          <unicodeName>general-category</unicodeName>
-          <value>Lo</value>
-        </charProp>
       </char>
     </charDesc>
 
   def missingChar(code: String): Elem =
     <charDesc>
-      <char id={s"#$code"}>
+      <char id={s"$code"}>
         <charName>TAIWANESE HANJI {code} (IDS MISSING)</charName>
         <charProp>
           <unicodeName>general-category</unicodeName>
@@ -159,13 +164,16 @@ object ExporterTEI {
 
   def mappedChar(code: Int, cjk: String): Elem =
     <charDesc>
-      <char id={s"#$code"}>
+      <char id={code.toHexString}>
         <charName>TAIWANESE HANJI {code.toHexString} mapped to UNICODE {cjk}</charName>
         <charProp>
           <unicodeName>general-category</unicodeName>
           <value>Lo</value>
         </charProp>
         <mapping type="standard">{cjk}</mapping>
+        <figure>
+          <graphic url={s"img/k/${code.toHexString.drop(1)}.png"}/>
+        </figure>
       </char>
     </charDesc>
 
@@ -173,7 +181,7 @@ object ExporterTEI {
     case TsuIm(id, code) => tsuImMetaData(id, code)
     case Hanji(ids, code) => hanjiMetaData(ids, code)
     case HanjiNoIDS(code) => missingChar(code)
-    case MappedHanji(code, cjk) =>mappedChar(code, cjk)
+    case MappedHanji(code, cjk) => mappedChar(code, cjk)
   }
 
   def parseData(): Seq[koktai.Chapter] = {
