@@ -84,17 +84,17 @@ object Main extends App {
             (0xf93c7 <= c && c <= 0xf93cf) ||
             (0xf856c <= c && c <= 0xf856f)
           )))
-          s"<rt>$out|$hexString</rt>"
-        else s"<mapped>$out|$hexString</mapped>"
+          s"<rt>$out|$font|$hexString</rt>"
+        else s"<mapped>$out|$font|$hexString</mapped>"
       }
       case x =>
-        (mappings(NonAstral).get(x).map(c => s"<mapped>$c|$hexString</mapped>") orElse (
+        (mappings(NonAstral).get(x).map(c => s"<mapped>$c|$font|$hexString</mapped>") orElse (
           if (font == FK && 0xf8cc4 <= x && x <= 0xffefe) // astral of k-font
-            Some(s"<missing>${(Character.toChars(x) mkString "") + s"|$hexString"}</missing>")
+            Some(s"<missing>${(Character.toChars(x) mkString "") + s"|$font|$hexString"}</missing>")
           //Some(Character.toChars(x) mkString "")
           else
-            mappings(Unknown).get(x).map(s => s"<missing>$s|$hexString</missing>") orElse
-              decodeRoundedNumber(x).map(s => s"<mapped>$s|$hexString</mapped>")
+              mappings(Unknown).get(x).map(s => s"<tocheck>$s|$font|$hexString</tocheck>") orElse
+              decodeRoundedNumber(x).map(s => s"<mapped>$s|$font|$hexString</mapped>")
           )) //.getOrElse(s"<missing>${(Character.toChars(x) mkString "") + s"|$x"}</missing>")
           .getOrElse(Character.toChars(x) mkString (""))
     }
@@ -130,7 +130,7 @@ object Main extends App {
   }
 
   def extractKoktaiCJKFromTextResult(tr: TextResult): Set[String] = tr match {
-    case koktai.KokTaiCJK(s,_, false) => println(s); Set(s)
+    case koktai.KokTaiCJK(s, _, _, false) => println(s); Set(s)
     case koktai.Text(l) => l.map(extractKoktaiCJKFromTextResult).foldLeft(Set.empty[String])(_ union _)
     case koktai.CJKRuby(cjk, _) => extractKoktaiCJKFromTextResult(cjk)
     case _:koktai.StringResult => Set.empty

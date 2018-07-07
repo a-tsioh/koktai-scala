@@ -36,7 +36,7 @@ object KokTaiParser extends RegexParsers {
     rep(word) ^^ {
     case ( title ~ _ ~ zhuyin ~ comment  ~ readings ~ words) =>
       // todo: correct point · not inside <rt>
-      Sinogram(cleanupTextResult(title), zhuyin.map(cleanupStringResult).getOrElse(Ruby("",0)), comment.map(cleanupText), readings, words)
+      Sinogram(cleanupTextResult(title), zhuyin.map(cleanupStringResult).getOrElse(Ruby("", "", 0)), comment.map(cleanupText), readings, words)
   }
     //.getOrElse("".asInstanceOf[Ruby])
 
@@ -85,10 +85,11 @@ object KokTaiParser extends RegexParsers {
       |\x{2B820}-\x{2CEAF}
       |\x{2F800}-\x{2FA1F}])""".stripMargin.replace("\n","").r ^^ CJK
 
-  def koktaiCjk: Parser[KokTaiCJK] =
+  def koktaiCjk: Parser[KokTaiNewChar] =
       // "<mark>" ~> "[^|]+".r ~"|" ~ "[^<]+".r <~ "</mark>" ^^ {case (cjk ~ _ ~ code) => KokTaiCJK(cjk, 0, )} |
-        "<mapped>" ~> "[^|]+".r ~ "|" ~ "[^<]+".r <~ "</mapped>" ^^ {case (cjk ~ _  ~ code) => KokTaiCJK(cjk, Integer.valueOf(code, 16), true)} |
-        "<missing>" ~> "[^|]+".r ~ "|" ~ "[^<]+".r <~ "</missing>" ^^ {case (cjk ~ _  ~ code) => KokTaiCJK(cjk, Integer.valueOf(code, 16), false)}
+        "<mapped>" ~> "[^|]+".r ~ "|" ~ "[^|]+".r ~ "|" ~ "[^<]+".r  <~ "</mapped>" ^^ {case (cjk ~ _ ~ font  ~ _ ~ code) => KokTaiCJK(cjk, font, Integer.valueOf(code, 16), true)} |
+        "<tocheck>" ~> "[^|]+".r ~ "|" ~ "[^|]+".r ~ "|" ~ "[^<]+".r <~ "</tocheck>" ^^ {case (chr ~ _ ~ font ~ _ ~ code) => KokTaiToCheck(chr, font, Integer.valueOf(code, 16))} |
+        "<missing>" ~> "[^|]+".r ~ "|" ~ "[^|]+".r ~ "|" ~ "[^<]+".r <~ "</missing>" ^^ {case (cjk ~ _ ~ font ~ _ ~ code) => KokTaiCJK(cjk, font, Integer.valueOf(code, 16), false)}
 
   def sinogramTitle: Parser[TextResult] =
     rep(sinogramTitleAnyElem) ^^ Text
@@ -102,8 +103,8 @@ object KokTaiParser extends RegexParsers {
   def simpleAnnotReading: Parser[Ruby] =
     //"<mark>&#xf856f;</mark>" ^^^ "│ㄋ" ^^ case x =>Ruby(_, 0xf856f) |
     //  "<mark>&#xf815e;</mark>" ^^^ "│ㄋ" ^^ case x Ruby(_, 0xf815e) |
-      opt("·") ~ "<rt>" ~ repsep(zhuyin, "/")  ~ "|" ~ "[0-9a-f]+".r  <~ "</rt>" ^^ {
-        case ( point ~ _ ~  syllable ~ _ ~ code) => Ruby(s"${point.getOrElse("")} ${syllable.mkString("/")}", Integer.valueOf(code, 16))
+      opt("·") ~ "<rt>" ~ repsep(zhuyin, "/")  ~"|" ~  "[^|]+".r   ~ "|" ~ "[0-9a-f]+".r  <~ "</rt>" ^^ {
+        case ( point ~ _ ~  syllable ~ _ ~ font ~ _ ~ code) => Ruby(s"${point.getOrElse("")} ${syllable.mkString("/")}", font,  Integer.valueOf(code, 16))
       }
 
   def annotedCJK: Parser[CJKRuby] =

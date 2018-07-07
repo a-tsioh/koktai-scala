@@ -71,7 +71,7 @@ object JsData  extends js.Object {
     case s: StringResult => SimpleStringFromParse(s)
     case koktai.Text(content) => new Text(content.map(TextResultFromParse).toJSArray)
     case koktai.CJKRuby(cjk, ruby) => new CJKRuby(TextResultFromParse(cjk), ruby.r)
-    case koktai.KokTaiCJK(cjk) => println(cjk) ; new KoktaiCJK(cjk)
+    case koktai.KokTaiCJK(cjk,_,_) => println(cjk) ; new KoktaiCJK(cjk)
   }
 
   // mirror StringResult
