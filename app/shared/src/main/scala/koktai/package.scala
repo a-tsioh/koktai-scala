@@ -56,6 +56,7 @@ package object koktai {
       case s: StringResult => s.s
       case CJK(c) => c
       case Text(l) => l.map(_.toString) mkString ""
+      case KokTaiToCheck(chr, _, _) => chr
       case _ => "x"
     }
   }

@@ -7,12 +7,12 @@ import koktai.KokTaiParser.parse
 import koktai.Main.{convertAstralChars, loadIDSMapping, readByChapters}
 
 import scala.xml.dtd.DocType
-import scala.xml.{Elem, PCData}
+import scala.xml.{Elem, PCData, SAXException, SAXParseException}
 
 object ExporterTEI {
 
-  val mappingFile = "./Data/koktai-ids.csv"
-  val contentFile = "./Data/recoded.u8"
+  val mappingFile = getClass().getResource("/Data/koktai-ids.csv").getPath
+  val contentFile = getClass().getResource("/Data/recoded.u8").getPath
   val missing = collection.mutable.HashSet.empty[String]
 
   /**
@@ -172,92 +172,108 @@ object ExporterTEI {
   def chapterToTEI(chapter: Chapter): Elem =
     <div>
       <head>{chapter.zhuyin} [{chapter.pinyin}]</head>
-      {chapter.comment.map(c => <p>{trToStr(c)}</p>).orNull}
-      {chapter.words.map(wordToTEI) map {n => <item>{n}</item>} match {
+      {chapter.comment.map(c => <p>{trToStr(c)}</p>).orNull}{chapter.words match {
       case Nil => null
-      case words => <list rend="block" type="words">{words}</list>}
-      }
-      {chapter.sinograms.map(sinogramToTEI) map {n => <item>{n}</item>} match {
+      case ws =>
+        <div type="words">
+          {ws.map(wordToTEI)}
+        </div>
+    }}{chapter.sinograms match {
       case Nil => null
-      case sinograms => <list rend="block" type="sinograms">{sinograms}</list>}
-      }
+      case sinos =>
+        <div type="sinograms">
+          {sinos.map(sinogramToTEI)}
+        </div>
+    }}
     </div>
 
   def wordToTEI(word: Word): Elem =
-    <entryFree>
+    <entry type="word">
       <form>
         <orth type="full">{trToStr(word.title)}</orth>
         <orth type="no-zhuyin">{word.noZhuyin}</orth>
         <pron>{word.onlyZhuyin}</pron>
       </form>
       {
-        word.partOfSpeech.map { pos =>
-          <gramGrp>
-            <pos>{pos}</pos>
-          </gramGrp>
-        }.orNull
+      word.partOfSpeech.map { pos =>
+        <gramGrp>
+          <pos>{pos}</pos>
+        </gramGrp>
+      }.orNull
       }
       <def>{word.num.orNull}{trToStr(word.text)}</def>
-    </entryFree>
+    </entry>
 
-  def sinogramToTEI(sinogram: Sinogram): Elem =
-    <superEntry>
-      <head>{trToStr(sinogram.cjk)}{trToStr(sinogram.annot)}</head>
-      <list rend="inline" type="readings">
-        {sinogram.comment.map {fq => <item>{trToStr(fq)}</item> } orNull}
-        {sinogram.readings.map {r => <label>{r.src}</label><item>{trToStr(r.content)}</item>}}
-      </list>
-      <list rend="block" type="words">
-      {sinogram.words map wordToTEI map {n => <item>{n}</item>}}
-      </list>
-    </superEntry>
+    def sinogramToTEI(sinogram: Sinogram): Elem =
+      <entryFree type="sinogram">
+        <form>
+          <orth>{trToStr(sinogram.cjk)}</orth>
+          <pron>{trToStr(sinogram.annot)}</pron>
+          {sinogram.comment.map {fq => <note type="comment">{trToStr(fq)}</note> } orNull}
+          {sinogram.readings.map {r => <note type={r.src}>{trToStr(r.content)}</note>}}
+        </form>{if(sinogram.words.nonEmpty)
+        <superEntry>
+        {sinogram.words map wordToTEI}
+        </superEntry>}
+      </entryFree>
+  //        {
+  //        if (sinogram.words.isEmpty) null
+  //        else {
+  //          <list type="words">
+  //            {sinogram.words map wordToTEI map { e => <item><div>{e}</div></item> }}
+  //          </list>
+  //        }
+  //        }
 
-  def parseData(): Seq[koktai.Chapter] = {
-    val data = readByChapters(contentFile)
-    val txt = data.par
-      .map(convertAstralChars)
-    val fw = new FileWriter(new File("/tmp/debug"))
-    txt.seq.foreach(l => fw.write(s"$l\n"))
-    fw.close()
-    txt
-      .map(parse(KokTaiParser.chapter, _))
-      .collect { case KokTaiParser.Success(chpt,_) => chpt}
-      .seq
-  }
-
-  def buildDict(): Elem = {
-    val data = parseData()
-    val teiContent = data.map(chapterToTEI)
-    val tei = templateTEI(newChars.toList.map(_.metaData()), teiContent)
-    println("missing mappings")
-    println(missing.toList.sorted.mkString("\n"))
-    println(missing.size)
-    tei
-  }
-
-  def buildXML(path: String): Unit = writeXML(buildDict(), path)
-
-  def writeXML(doc: Elem, path: String): Unit = {
-    import scala.xml.dtd.{DocType,SystemID}
-    val fw = new FileWriter(path)
-    scala.xml.XML.write(fw,doc,"utf-8",xmlDecl = true,DocType("TEI",SystemID("/tmp/tei_koktai.dtd"),Nil))
-    fw.close()
-  }
-
-
-  def validateXML(xmlPath: String, schemaPath: String): Unit = {
-    import javax.xml.transform.stream.StreamSource
-    import javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
-    import javax.xml.validation._
-    val factory = SchemaFactory.newInstance(W3C_XML_SCHEMA_NS_URI)
-    val schema = factory.newSchema(new StreamSource(schemaPath))
-    val validator = schema.newValidator()
-    util.Try(validator.validate(new StreamSource(xmlPath))) match {
-      case util.Failure(e) =>
-        println(e.getMessage)
-
-      case _ => println("ok")
+    def parseData(): Seq[koktai.Chapter] = {
+      val data = readByChapters(contentFile)
+      val txt = data.par
+        .map(convertAstralChars)
+      val fw = new FileWriter(new File("/tmp/debug"))
+      txt.seq.foreach(l => fw.write(s"$l\n"))
+      fw.close()
+      txt
+        .map(parse(KokTaiParser.chapter, _))
+        .collect { case KokTaiParser.Success(chpt,_) => chpt}
+        .seq
     }
-  }
+
+    def buildDict(): Elem = {
+      val data = parseData()
+      val teiContent = data.map(chapterToTEI)
+      val tei = templateTEI(newChars.toList.map(_.metaData()), teiContent)
+      println("missing mappings")
+      println(missing.toList.sorted.mkString("\n"))
+      println(missing.size)
+      tei
+    }
+
+    def buildXML(path: String): Unit = writeXML(buildDict(), path)
+
+    def writeXML(doc: Elem, path: String): Unit = {
+      import scala.xml.dtd.{DocType,SystemID}
+      val fw = new FileWriter(path)
+      scala.xml.XML.write(fw,doc,"utf-8",xmlDecl = true,DocType("TEI",SystemID("./tei_koktai.dtd"),Nil))
+      fw.close()
+    }
+
+
+    def validateXML(xmlPath: String, schemaPath: String): Unit = {
+      import javax.xml.transform.stream.StreamSource
+      import javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
+      import javax.xml.validation._
+      val factory = SchemaFactory.newInstance(W3C_XML_SCHEMA_NS_URI)
+      val schema = factory.newSchema(new StreamSource(schemaPath))
+      val validator = schema.newValidator()
+      val xmlStream = new StreamSource(xmlPath)
+      util.Try(validator.validate(xmlStream)) match {
+        case util.Failure(e: SAXParseException) =>
+          println(e.getMessage)
+          println("line "+ e.getLineNumber)
+        case util.Failure(e) => println(e.getMessage)
+        case _ => println("ok")
+      }
+    }
+
 
 }

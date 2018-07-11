@@ -18,7 +18,7 @@ object KokTaiParser extends RegexParsers {
 
 
   def chapter: Parser[Chapter] = ".章首" ~>
-      rep(zhuyin | "/" | simpleAnnotReading) ~ opt("""\[[^\]]+\]""".r) ~
+      rep(zhuyin | "/" | simpleAnnotReading | koktaiCjk) ~ opt("""\[[^\]]+\]""".r) ~
     opt(wordContent) ~
    // opt(""".*?(?=<CHAR|~t96|~fm7;[國台普]$)""".r) ~
       rep(word) ~
@@ -35,7 +35,6 @@ object KokTaiParser extends RegexParsers {
     rep(reading) ~
     rep(word) ^^ {
     case ( title ~ _ ~ zhuyin ~ comment  ~ readings ~ words) =>
-      // todo: correct point · not inside <rt>
       Sinogram(cleanupTextResult(title), zhuyin.map(cleanupStringResult).getOrElse(Ruby("", "", 0)), comment.map(cleanupText), readings, words)
   }
     //.getOrElse("".asInstanceOf[Ruby])
@@ -103,9 +102,11 @@ object KokTaiParser extends RegexParsers {
   def simpleAnnotReading: Parser[Ruby] =
     //"<mark>&#xf856f;</mark>" ^^^ "│ㄋ" ^^ case x =>Ruby(_, 0xf856f) |
     //  "<mark>&#xf815e;</mark>" ^^^ "│ㄋ" ^^ case x Ruby(_, 0xf815e) |
-      opt("·") ~ "<rt>" ~ repsep(zhuyin, "/")  ~"|" ~  "[^|]+".r   ~ "|" ~ "[0-9a-f]+".r  <~ "</rt>" ^^ {
-        case ( point ~ _ ~  syllable ~ _ ~ font ~ _ ~ code) => Ruby(s"${point.getOrElse("")} ${syllable.mkString("/")}", font,  Integer.valueOf(code, 16))
-      }
+    //  opt("·") ~ "<rt>" ~ repsep(zhuyin, "/")  ~"|" ~  "[^|]+".r   ~ "|" ~ "[0-9a-f]+".r  <~ "</rt>" ^^ {
+    //    case ( point ~ _ ~  syllable ~ _ ~ font ~ _ ~ code) => Ruby(s"${point.getOrElse("")} ${syllable.mkString("/")}", font,  Integer.valueOf(code, 16))
+    "<rt>" ~> repsep(zhuyin, "/")  ~"|" ~  "[^|]+".r   ~ "|" ~ "[0-9a-f]+".r  <~ "</rt>" ^^ {
+        case ( syllable ~ _ ~ font ~ _ ~ code) => Ruby(s"${syllable.mkString("/")}", font,  Integer.valueOf(code, 16))
+    }
 
   def annotedCJK: Parser[CJKRuby] =
     koktaiCjk  ~ simpleAnnotReading ^^ {case (cjk ~ ruby ) => CJKRuby(cjk, ruby)} |

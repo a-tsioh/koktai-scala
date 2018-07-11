@@ -88,14 +88,15 @@ object Main extends App {
         else s"<mapped>$out|$font|$hexString</mapped>"
       }
       case x =>
-        (mappings(NonAstral).get(x).map(c => s"<mapped>$c|$font|$hexString</mapped>") orElse (
-          if (font == FK && 0xf8cc4 <= x && x <= 0xffefe) // astral of k-font
+        //println(s"$x not in font $font")
+        //(mappings(NonAstral).get(x).map(c => s"<mapped>$c|$font|$hexString</mapped>") orElse (
+        (if (font == FK && 0xf8cc4 <= x && x <= 0xffefe) // astral of k-font
             Some(s"<missing>${(Character.toChars(x) mkString "") + s"|$font|$hexString"}</missing>")
           //Some(Character.toChars(x) mkString "")
           else
               mappings(Unknown).get(x).map(s => s"<tocheck>$s|$font|$hexString</tocheck>") orElse
               decodeRoundedNumber(x).map(s => s"<mapped>$s|$font|$hexString</mapped>")
-          )) //.getOrElse(s"<missing>${(Character.toChars(x) mkString "") + s"|$x"}</missing>")
+          )//) //.getOrElse(s"<missing>${(Character.toChars(x) mkString "") + s"|$x"}</missing>")
           .getOrElse(Character.toChars(x) mkString (""))
     }
   }
