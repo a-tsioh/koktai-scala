@@ -23,6 +23,7 @@ object ExporterTEI {
   }
 
   case class Hanji(font: String, ids: String, code: String) extends NewChar {
+    val fontDir = font.drop(1).toLowerCase
     override def metaData(): Elem =
       <charDecl>
         <char xml:id={s"hj-$font-$code"}>
@@ -34,11 +35,15 @@ object ExporterTEI {
           <value>Lo</value>
         </charProp-->
           <!--desc>{ids}</desc-->
+          <figure>
+            <graphic url={s"img/$fontDir/${code.drop(1)}.png"}/>
+          </figure>
         </char>
       </charDecl>
   }
 
   case class HanjiNoIDS(font: String, code: String) extends NewChar {
+    val fontDir = font.drop(1).toLowerCase
     override def metaData(): Elem =
       <charDecl>
         <char xml:id={s"missing-$font-$code"}>
@@ -47,23 +52,28 @@ object ExporterTEI {
           <unicodeName>general-category</unicodeName>
           <value>Lo</value>
         </charProp-->
+          <figure>
+            <graphic url={s"img/$fontDir/${code.drop(1)}.png"}/>
+          </figure>
         </char>
       </charDecl>
   }
 
   case class ToBeChecked(font: String, chr: String, code: Int) extends NewChar {
+    val fontDir = font.drop(1).toLowerCase
     override def metaData(): Elem =
       <charDecl>
         <char xml:id={s"to-check-$font-${code.toHexString}"}>
           <charName>MAPPED CHAR TO BE CHECKED {code.toHexString} mapped to UNICODE {chr}</charName>
           <mapping type="standard">{chr}</mapping>
           <figure>
-            <graphic url={s"img/k/${code.toHexString.drop(1)}.png"}/>
+            <graphic url={s"img/$fontDir/${code.toHexString.drop(1)}.png"}/>
           </figure>
         </char>
       </charDecl>
   }
   case class MappedHanji(font: String, code: Int, cjk: String) extends  NewChar {
+    val fontDir = font.drop(1).toLowerCase
     override def metaData(): Elem =
       <charDecl>
         <char xml:id={s"mapped-$font-${code.toHexString}"}>
@@ -74,19 +84,23 @@ object ExporterTEI {
         </charProp-->
           <mapping type="standard">{cjk}</mapping>
           <figure>
-            <graphic url={s"img/k/${code.toHexString.drop(1)}.png"}/>
+            <graphic url={s"img/$fontDir/${code.toHexString.drop(1)}.png"}/>
           </figure>
         </char>
       </charDecl>
   }
 
   case class TsuIm(font: String, id: String, code: String) extends NewChar {
+    val fontDir = font.drop(1).toLowerCase
     override def metaData(): Elem =
       <charDecl>
         <char xml:id={s"ruby-$font-$code"}>
           <charName>TAIWANESE TSU-IM SYLLABLE {id}</charName>
           <mapping type="standard" style="writing-mode: vertical-rl">{id}</mapping>
           <mapping type="PUA">{s"U+$code"}</mapping>
+          <figure>
+            <graphic url={s"img/$fontDir/${code.drop(1)}.png"}/>
+          </figure>
         </char>
       </charDecl>
   }
@@ -251,9 +265,9 @@ object ExporterTEI {
     def buildXML(path: String): Unit = writeXML(buildDict(), path)
 
     def writeXML(doc: Elem, path: String): Unit = {
-      import scala.xml.dtd.{DocType,SystemID}
+      import scala.xml.dtd.{DocType,SystemID,PublicID}
       val fw = new FileWriter(path)
-      scala.xml.XML.write(fw,doc,"utf-8",xmlDecl = true,DocType("TEI",SystemID("./tei_koktai.dtd"),Nil))
+      scala.xml.XML.write(fw,doc,"utf-8",xmlDecl = true,DocType("TEI",PublicID("-//W3C//DTD XHTML 1.0 Strict//EN","http://koktai-beta.magistry.fr/static/tei_koktai.dtd"),Nil))
       fw.close()
     }
 
