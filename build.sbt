@@ -1,36 +1,12 @@
-enablePlugins(ScalaJSPlugin)
+name := "koktai-scala"
 
-scalaJSModuleKind := ModuleKind.CommonJSModule
+version := "0.3"
 
-scalaJSUseMainModuleInitializer := true
+scalaVersion := "2.12.10"
 
-mainClass := Some("koktai.Main")
-
-val app = crossProject.crossType(CrossType.Full).in(file("./app")).settings(
-  name := "koktai-scala",
-  version := "0.2",
-  scalaVersion := "2.12.2",
-  //unmanagedSourceDirectories in Compile +=
-  //  baseDirectory.value  / "shared" / "main" / "scala",
-  libraryDependencies ++= Seq(
-
-  ),
-  mainClass in (Compile, run) := Some("koktai.Main")
-)
-  .jsSettings(
-    scalaVersion := "2.12.2",
-   // scalaJSModuleKind := ModuleKind.CommonJSModule,
-    //scalaJSUseMainModuleInitializer := true,
-    //mainClass := Some("koktai.jsMain"),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.2",
-      "io.suzaku" %%% "boopickle" % "1.2.6"
-    )
-  )
-  .jvmSettings(
-    mainClass in (Compile, run) := Some("koktai.Main"),
-    scalaVersion := "2.12.2",
-    libraryDependencies ++= Seq(
+mainClass in (Compile, run) := Some("koktai.ExporterTEI")
+    
+libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scala-lang.modules" % "scala-xml_2.12" % "1.0.6",
     //"org.scala-lang" % "scala-xml" % "2.11.0-M4",
@@ -40,8 +16,5 @@ val app = crossProject.crossType(CrossType.Full).in(file("./app")).settings(
     // "com.lihaoyi" % "upickle_2.11" % "0.4.4"
     "io.suzaku" %% "boopickle" % "1.2.6"
     )
-  )
 
-lazy val js = app.js
 
-lazy val jvm = app.jvm
