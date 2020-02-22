@@ -1,8 +1,13 @@
 # koktai-scala
 
-This repository held the original data of the 《吳守禮國台對照活用辭典》 Mandarin-Taiwanese dictionary, 
-the result of crowdsourcing process to recode some PUA Taiwanese sinograms,
-and the code to generate a TEI version of the dictionary.
+This repository held the original data of the 《吳守禮國台對照活用辭典》 Mandarin-Taiwanese dictionary authored by Ngô ShuLeh, 
+the result of crowdsourcing process to recode some PUA Taiwanese sinograms into today's Unicode,
+and the code to convert, parse and generate a TEI version of the dictionary.
+
+# Get the data
+
+If you don't want to touch the code, the TEI version is also made available at  [Zenodo]()
+(https://zenodo.org/record/1308746), a repository for Open Science hosted at CERN.  
 
 
 # Build the TEI file
